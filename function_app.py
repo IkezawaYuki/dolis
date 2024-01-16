@@ -3,12 +3,11 @@ import logging
 import os
 import json
 import requests
-
+from openai import OpenAI
 
 
 azure_app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
     
-
 
 @azure_app.route(route="http_trigger", auth_level=func.AuthLevel.ANONYMOUS)
 def http_trigger(req: func.HttpRequest) -> func.HttpResponse:
@@ -19,7 +18,9 @@ def http_trigger(req: func.HttpRequest) -> func.HttpResponse:
         if slack_event.get("type") == "app_mention":
             user_id = slack_event.get("user")
             channel_id = slack_event.get("channel")
-            send_slack_message(channel_id, f"<@{user_id}>さん、ファイヤー!!!!")
+            message = slack_event.get("text")
+            resp = send_gpt(message)
+            send_slack_message(channel_id, f"<@{user_id}>{resp}")
     except ValueError as e:
         print(e)
     return func.HttpResponse("ファイヤー!", status_code=200)
@@ -40,3 +41,16 @@ def send_slack_message(channel_id, message):
     if response.status_code != 200:
         logging.error(f"Slack APIへのリクエストに失敗しました。ステータスコード: {response.status_code}")
 
+
+def send_gpt(message):
+    chat_completion = OpenAI.models.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"{message}",
+                }
+            ],
+            model="gpt-4",
+        )
+    print(chat_completion.choices[0].message.content)
+    return chat_completion.choices[0].message.content
