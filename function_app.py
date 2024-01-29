@@ -5,7 +5,7 @@ import json
 import requests
 from openai import OpenAI
 
-
+openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 azure_app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
     
 
@@ -16,6 +16,7 @@ def http_trigger(req: func.HttpRequest) -> func.HttpResponse:
         req_body = req.get_json()
         slack_event = req_body.get('event')
         if slack_event.get("type") == "app_mention":
+            print(slack_event)
             user_id = slack_event.get("user")
             channel_id = slack_event.get("channel")
             message = slack_event.get("text")
@@ -43,7 +44,7 @@ def send_slack_message(channel_id, message):
 
 
 def send_gpt(message):
-    chat_completion = OpenAI.models.completions.create(
+    chat_completion = openai_client.chat.completions.create(
             messages=[
                 {
                     "role": "user",
